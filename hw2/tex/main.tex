@@ -1,0 +1,1236 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{parskip}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{tikz}
+\usepackage{titling}
+
+ % move title upward
+
+\title{15.095 Machine Learning HW2}
+\author{Chris Low}
+\date{} % removes the date
+
+\begin{document}
+
+\maketitle
+
+\section*{Question 1}
+
+\subsection*{(a)}
+\textbf{False.}
+
+Consider the underlying function
+\[
+f(x) = \sin x,
+\]
+which is non-convex on $\mathbb{R}$. Let $n=2$ and choose
+\[
+x_1 = 0, \qquad x_2 = \frac{\pi}{2}.
+\]
+Then
+\[
+y_1 = f(x_1) = 0, \qquad y_2 = f(x_2) = 1.
+\]
+
+So we can set: 
+\[
+\theta_1 = 0, \qquad \theta_2 = 1,
+\qquad
+\xi_1 = \xi_2 = \frac{1-0}{\frac{\pi}{2}-0} = \frac{2}{\pi}.
+\]
+The convexity constraints are satisfied since
+\[
+\theta_1 + \xi_1(x_2-x_1)
+= 0 + \frac{2}{\pi}\left(\frac{\pi}{2}\right)
+= 1
+= \theta_2,
+\]
+and
+\[
+\theta_2 + \xi_2(x_1-x_2)
+= 1 + \frac{2}{\pi}\left(-\frac{\pi}{2}\right)
+= 0
+= \theta_1.
+\]
+
+Moreover, since $\theta_i = y_i$ for both observations,
+\[
+\frac{1}{2}\sum_{i=1}^2 (y_i-\theta_i)^2 = 0.
+\]
+
+Thus, even though the underlying function $f$ is non-convex, the convex
+regression problem only needs to fit the observed points. These two
+sampled points lie on the affine function $g(x)=\frac{2}{\pi}x$, which
+is convex. Hence, they can be fit perfectly, giving an objective value
+of zero. Therefore, the statement is false. \qed
+
+\newpage
+\subsection*{(b)}
+\textbf{True.}
+
+Let
+\[
+r_i = y_i - x_i^\top \beta, \qquad i=1,\ldots,n.
+\]
+
+Introduce binary variables $z_i \in \{0,1\}$, where $z_i=1$ means
+that residual $i$ is selected. We also introduce continuous variables
+$u_i \geq 0$. We can formulate the problem as
+
+\[
+\min_{\beta,r,u,z} \sum_{i=1}^n u_i
+\]
+
+subject to
+
+\[
+r_i = y_i - x_i^\top \beta,
+\qquad i=1,\ldots,n,
+\]
+
+\[
+u_i \geq r_i - M(1-z_i),
+\qquad i=1,\ldots,n,
+\]
+
+\[
+u_i \geq -r_i - M(1-z_i),
+\qquad i=1,\ldots,n,
+\]
+
+\[
+\sum_{i=1}^n z_i = k,
+\]
+
+\[
+u_i \geq 0,
+\qquad i=1,\ldots,n,
+\]
+
+\[
+z_i \in \{0,1\},
+\qquad i=1,\ldots,n,
+\]
+
+where $M$ is a sufficiently large constant.
+
+If $z_i=1$, the two Big-$M$ constraints reduce to
+\[
+u_i \geq r_i,
+\qquad
+u_i \geq -r_i,
+\]
+which is equivalent to 
+\[
+u_i \geq |r_i|.
+\]
+
+If $z_i=0$, the Big-$M$ constraints become
+\[
+u_i \geq r_i-M,
+\qquad
+u_i \geq -r_i-M.
+\]
+For sufficiently large $M$, both right-hand sides are less than or
+equal to zero. Thus, together with $u_i\geq 0$, the smallest feasible
+value is
+$
+u_i=0.$
+Since the objective minimizes $\sum_{i=1}^n u_i$, the optimizer will
+set $u_i=0$ for these unselected residuals.
+
+
+Since
+$
+\sum_{i=1}^n z_i=k,
+$
+exactly $k$ residuals must be selected. 
+
+
+For each selected residual,
+$u_i \geq |r_i|$, and since we minimize $\sum_{i=1}^n u_i$, we have
+$u_i=|r_i|$ at optimality. 
+
+For each unselected residual, $u_i=0$.
+Therefore, minimizing $\sum_{i=1}^n u_i$ selects and sums the $k$
+smallest absolute residuals. All constraints and the objective are
+linear, with $z_i$ binary, so this is a linear MIO formulation. \qed
+
+
+
+\newpage
+\subsection*{(c)}
+
+
+\textbf{False.}
+
+The two constraints do different things. For two highly correlated
+variables, the constraint
+\[
+z_i + z_j \leq 1
+\]
+means that we can select at most one of them. So the possible choices
+are
+\[
+(z_i,z_j) \in \{(0,0),(1,0),(0,1)\}.
+\]
+
+On the other hand, if we put $i$ and $j$ in the same group and impose
+\[
+z_i=z_j,
+\]
+then they must either both be selected or both be excluded. The possible
+choices are therefore
+\[
+(z_i,z_j) \in \{(0,0),(1,1)\}.
+\]
+
+These are not equivalent. In fact, $z_i=z_j$ allows both highly
+correlated variables to be selected at the same time, while
+$z_i+z_j\leq1$ is specifically used to prevent this. Therefore, we
+cannot replace the pairwise-collinearity constraint with the
+group-sparsity constraint. \qed
+
+
+
+
+\vspace{5mm}
+\subsection*{(d)}
+\textbf{False.}
+
+From the robust logistic regression result in Lecture 6, if the feature
+uncertainty set is
+\[
+\mathcal{U}_x
+=
+\left\{
+\Delta X:
+\|\Delta x_i\|_q \leq \rho,
+\quad i=1,\ldots,n
+\right\},
+\]
+then the robust counterpart is
+\[
+\max_{\beta,\beta_0}
+-\sum_{i=1}^n
+\log\left(
+1+
+e^{-y_i(\beta^\top x_i+\beta_0)
++\rho\|\beta\|_{q^*}}
+\right),
+\]
+where $q^*$ is the dual norm of $q$, satisfying
+\[
+\frac{1}{q}+\frac{1}{q^*}=1.
+\]
+
+Thus, the robustness term is generally
+\[
+\rho\|\beta\|_{q^*},
+\]
+not
+\[
+\rho\|\beta\|_q.
+\]
+
+For example, take
+\[
+q=\infty,
+\qquad
+\rho=1,
+\qquad
+\beta=(1,1).
+\]
+The dual norm of $\ell_\infty$ is $\ell_1$, so the correct robustness
+term is
+\[
+\rho\|\beta\|_1
+=
+1(1+1)
+=
+2.
+\]
+However, the expression in the statement would use
+\[
+\rho\|\beta\|_\infty
+=
+1\cdot 1
+=
+1.
+\]
+
+Therefore, the stated robust counterpart underestimates the worst-case
+effect and is not correct in general. The two expressions coincide only
+for self-dual norms, such as $q=2$. \qed
+
+
+\newpage
+
+\vspace{5mm}
+\subsection*{(e)}
+
+\textbf{True.}
+
+Let
+\[
+m_i = y_i(\beta^\top x_i+\beta_0).
+\]
+The robust problem: 
+\[
+\max_{\beta,\beta_0}
+\min_{\Delta y\in\mathcal U_y}
+-\sum_{i=1}^n
+\log\left(
+1+e^{-(1-2\Delta y_i)m_i}
+\right),
+\]
+where
+\[
+\mathcal U_y
+=
+\left\{
+\Delta y\in\{0,1\}^n:
+\sum_{i=1}^n \Delta y_i\le \Gamma
+\right\}.
+\]
+
+For fixed $\beta,\beta_0$, we define
+\[
+f_i(\Delta y_i)
+=
+-\log\left(
+1+e^{-(1-2\Delta y_i)m_i}
+\right).
+\]
+Since $\Delta y_i\in\{0,1\}$, we can write
+\[
+f_i(\Delta y_i)
+=
+f_i(0)
++
+\bigl(f_i(1)-f_i(0)\bigr)\Delta y_i.
+\]
+
+
+\[
+f_i(0)
+=
+-\log(1+e^{-m_i}),
+\]
+
+\[
+f_i(1)-f_i(0)
+=
+\log\left(
+\frac{1+e^{-m_i}}{1+e^{m_i}}
+\right).
+\]
+Thus the inner problem becomes
+\[
+\min_{\Delta y}
+-\sum_{i=1}^n\log(1+e^{-m_i})
++
+\sum_{i=1}^n c_i\Delta y_i,
+\]
+where
+\[
+c_i
+=
+\log\left(
+\frac{1+e^{-m_i}}{1+e^{m_i}}
+\right),
+\]
+subject to
+\[
+\Delta y_i\in\{0,1\},
+\qquad
+\sum_{i=1}^n\Delta y_i\le\Gamma.
+\]
+
+Now we observe that 
+$$
+0\le\Delta y_i\le1,
+\qquad
+\sum_{i=1}^n\Delta y_i\le\Gamma
+$$
+has integer extreme points when $\Gamma$ is integer, we can therefore relax the binary
+restriction, which would not change the optimal value. So 
+the inner problem is equivalent to the LP
+\[
+\min_{\Delta y}
+\sum_{i=1}^n c_i\Delta y_i
+\]
+subject to
+\[
+\sum_{i=1}^n\Delta y_i\le\Gamma,
+\]
+\[
+\Delta y_i\le1,
+\qquad i=1,\ldots,n,
+\]
+\[
+\Delta y_i\ge0,
+\qquad i=1,\ldots,n.
+\]
+
+
+Now we can take the dual problem. By strong duality, the optimal value is equal to that of its dual problem. 
+
+Let $\mu\le0$ be the dual variable associated with
+\[
+\sum_{i=1}^n\Delta y_i\le\Gamma,
+\]
+and let $\nu_i\le0$ be the dual variable associated with
+\[
+\Delta y_i\le1.
+\]
+The dual is
+\[
+\max_{\mu,\nu}
+\Gamma\mu+\sum_{i=1}^n\nu_i
+\]
+subject to
+\[
+\mu+\nu_i\le c_i,
+\qquad i=1,\ldots,n,
+\]
+\[
+\mu\le0,
+\qquad
+\nu_i\le0.
+\]
+
+By strong duality, the robust problem is therefore equivalent to
+\[
+\max_{\beta,\beta_0,\mu,\nu}
+-\sum_{i=1}^n
+\log\left(
+1+e^{-y_i(\beta^\top x_i+\beta_0)}
+\right)
++
+\Gamma\mu
++
+\sum_{i=1}^n\nu_i
+\]
+subject to
+\[
+\mu+\nu_i
+\le
+\log\left(
+\frac{
+1+e^{-y_i(\beta^\top x_i+\beta_0)}
+}{
+1+e^{y_i(\beta^\top x_i+\beta_0)}
+}
+\right),
+\qquad i=1,\ldots,n,
+\]
+\[
+\mu\le0,
+\qquad
+\nu_i\le0.
+\]
+
+Finally,
+\[
+\log\left(
+\frac{1+e^{-m_i}}{1+e^{m_i}}
+\right)
+=
+-m_i,
+\]
+so the constraints may equivalently be written as
+\[
+\mu+\nu_i
+\le
+-y_i(\beta^\top x_i+\beta_0).
+\]
+
+The robust counterpart is therefore a single continuous concave
+maximization problem, equivalently a convex optimization problem, and
+contains no integer variables. Therefore the statement is true. \qed
+
+
+
+\newpage
+
+
+
+
+
+
+\section*{Question 2}
+
+
+\vspace{5mm}
+\subsection*{(a)}
+
+Fix $(\beta,\beta_0)$, so the losses $c_i$ are constants, and we order them such that
+\[
+c_{(1)} \geq c_{(2)} \geq \cdots \geq c_{(n)}.
+\]
+
+For $z\in\mathcal Z$, exactly $k$ entries of $z$ equal $1$. Therefore,
+the objective is maximized by selecting the $k$ largest losses. Hence, it is equivalent to saying
+\[
+\max_{z\in\mathcal Z}\sum_{i=1}^n z_i c_i
+=
+\sum_{j=1}^k c_{(j)}.
+\]
+
+Now consider the continuous relaxation
+\[
+\mathcal P
+=
+\left\{
+z\in\mathbb R^n:
+\sum_{i=1}^n z_i=k,\;
+0\leq z_i\leq 1
+\right\}.
+\]
+
+Suppose $z\in\mathcal P$ is optimal. However, there exists indices $a,b$ such that
+\[
+c_a>c_b,
+\qquad
+z_a<1,
+\qquad
+z_b>0.
+\]
+That is, some positive weight is placed on a smaller loss $c_b$ while
+the larger loss $c_a$ has not yet received its maximum weight of $1$.
+
+We define 
+\[
+\epsilon=\min\{1-z_a,z_b\}>0,
+\]
+
+essentially satisfying the conditions that $z_a$ cannot exceed 1, and $z_b$ cannot go below 0. 
+
+We then construct a new solution $z'$ by moving $\epsilon$ units of weight from
+$b$ to $a$:
+\[
+z_a'=z_a+\epsilon,
+\qquad
+z_b'=z_b-\epsilon,
+\]
+with all other components unchanged.
+
+Since the same amount of weight is added and removed,
+\[
+\sum_{i=1}^n z_i'
+=
+\sum_{i=1}^n z_i
+=
+k.
+\]
+Also, with our choice of $\epsilon$, 
+\[
+0\leq z_i'\leq1.
+\]
+Therefore, $z'\in\mathcal P$.
+
+Our change in the objective is
+\[
+\sum_{i=1}^n z_i'c_i-\sum_{i=1}^n z_ic_i
+=
+(z_a+\epsilon)c_a+(z_b-\epsilon)c_b
+-z_ac_a-z_bc_b =
+\epsilon c_a-\epsilon c_b
+=
+\epsilon(c_a-c_b).
+\]
+
+
+Since $\epsilon>0$ and $c_a>c_b$,
+\[
+\epsilon(c_a-c_b)>0.
+\]
+Thus, moving weight from the smaller loss to the larger loss strictly
+increases the objective, contradicting our initial assumption that $z$ was
+optimal.
+
+Therefore, at an optimal point, no positive weight can be placed on a smaller
+loss while a larger loss has weight less than $1$. So there exists
+an optimal solution that assigns weight $1$ to the $k$ largest losses
+and weight $0$ to all remaining losses. In other words, 
+\[
+\max_{z\in\mathcal P}\sum_{i=1}^n z_i c_i
+=
+\sum_{j=1}^k c_{(j)}.
+\]
+
+We combine the two results,
+\[
+\max_{z\in\mathcal Z}\sum_{i=1}^n z_i c_i
+=
+\max_{z\in\mathcal P}\sum_{i=1}^n z_i c_i
+=
+\sum_{j=1}^k c_{(j)}.
+\] \qed
+
+
+\vspace{5mm}
+\subsection*{(b)}
+
+
+By part (a), for fixed $(\beta,\beta_0)$, we can replace the inner
+maximization over $\mathcal Z$ by its continuous relaxation $\mathcal P$.
+Let
+\[
+c_i=\ell(y_i,\beta^\top x_i+\beta_0).
+\]
+Then the inner problem is
+\[
+\begin{aligned}
+\max_{z}\quad
+& \sum_{i=1}^n c_i z_i\\
+\text{s.t.}\quad
+& \sum_{i=1}^n z_i=k,\\
+& z_i\leq 1, \qquad i=1,\ldots,n,\\
+& z_i\geq 0, \qquad i=1,\ldots,n.
+\end{aligned}
+\]
+
+Associate the free dual variable $\theta$ with the  constraint (due to the equality, the dual variable is free)
+\[
+\sum_{i=1}^n z_i=k,
+\]
+and the dual variable $u_i\geq0$ with each constraint $z_i\leq1$.
+
+Since each primal variable $z_i\geq0$, the corresponding dual constraint is
+\[
+\theta+u_i\geq c_i,
+\qquad i=1,\ldots,n.
+\]
+
+Therefore, the dual of the inner problem is
+\[
+\begin{aligned}
+\min_{\theta,u}\quad
+& k\theta+\sum_{i=1}^n u_i\\
+\text{s.t.}\quad
+& \theta+u_i\geq c_i,
+\qquad i=1,\ldots,n,\\
+& u_i\geq0,
+\qquad i=1,\ldots,n,\\
+& \theta\in\mathbb R.
+\end{aligned}
+\]
+
+By strong duality, the inner maximization and its dual have the same
+optimal value. Substituting
+\[
+c_i=\ell(y_i,\beta^\top x_i+\beta_0)
+\]
+and combining the dual with the outer minimization over
+$(\beta,\beta_0)$ gives
+\[
+\boxed{
+\begin{aligned}
+\min_{\beta,\beta_0,\theta,u}\quad
+& k\theta+\sum_{i=1}^n u_i\\
+\text{s.t.}\quad
+& \theta+u_i
+\geq
+\ell(y_i,\beta^\top x_i+\beta_0),
+\qquad i=1,\ldots,n,\\
+& u_i\geq0,
+\qquad i=1,\ldots,n,\\
+& \theta\in\mathbb R.
+\end{aligned}}
+\]
+
+Thus, problem (2.1) is equivalent to formulation (2.2). \qed
+
+\newpage
+
+Now let the loss be the misclassification loss $
+\mathbf{1}\left\{
+y_i(\beta^\top x_i+\beta_0)\leq 0
+\right\}.
+$
+
+Here, the indicator function equals $1$ when its condition is true and
+$0$ otherwise. Thus,
+\[
+y_i(\beta^\top x_i+\beta_0)\leq 0
+\]
+means that observation $i$ is misclassified, so its loss is $1$.
+If
+\[
+y_i(\beta^\top x_i+\beta_0)>0,
+\]
+the observation is correctly classified and its loss is $0$.
+
+Since we first define $c_i=\ell(y_i,\beta^\top x_i+\beta_0)$ and the duality argument holds for any fixed values of $c_i$, it remains valid when $\ell$ is the misclassification loss. Therefore, \textbf{formulation (2.2) is still valid} as 
+\[
+c_i
+=
+\mathbf{1}\left\{
+y_i(\beta^\top x_i+\beta_0)\leq 0
+\right\}.
+\]
+
+However, \textbf{(2.2) \textbf{cannot be handed directly}} to an LP or convex optimization
+solver. In particular, its constraints become
+\[
+\theta+u_i
+\geq
+\mathbf{1}\left\{
+y_i(\beta^\top x_i+\beta_0)\leq 0
+\right\}.
+\]
+The indicator function jumps from $0$ to $1$ when
+$y_i(\beta^\top x_i+\beta_0)$ crosses zero, so it is a discontinuous and
+nonconvex function of $(\beta,\beta_0)$. Therefore, the resulting problem
+is not directly an LP or convex optimization problem. We might need some further
+mixed-integer reformulation, for example we can use binary variables and
+big-$M$ constraints, before we give it to a solver.
+
+
+\vspace{5mm}
+
+\subsection*{(c)}
+
+
+For the hinge loss,
+\[
+\ell(y_i,\beta^\top x_i+\beta_0)
+=
+\max\left\{
+1-y_i(\beta^\top x_i+\beta_0),\,0
+\right\}.
+\]
+
+Substituting this into (2.2), we have
+\[
+\theta+u_i
+\geq
+\max\left\{
+1-y_i(\beta^\top x_i+\beta_0),\,0
+\right\}.
+\]
+
+ We see how a constraint in the form
+$
+a\geq\max\{b,0\}
+$
+is equivalent to
+\[
+a\geq b
+\qquad\text{and}\qquad
+a\geq0.
+\]
+
+Therefore, the hinge-loss constraint can be written as
+\[
+\theta+u_i
+\geq
+1-y_i(\beta^\top x_i+\beta_0)
+\]
+and
+\[
+\theta+u_i\geq0.
+\]
+
+Rearrange the first constraint: 
+\[
+\theta+u_i+y_i x_i^\top\beta+y_i\beta_0\geq1.
+\]
+
+Thus, (2.2) becomes
+\[
+\boxed{
+\begin{aligned}
+\min_{\beta,\beta_0,\theta,u}\quad
+& k\theta+\sum_{i=1}^n u_i\\
+\text{s.t.}\quad
+& \theta+u_i+y_i x_i^\top\beta+y_i\beta_0\geq1,
+\qquad i=1,\ldots,n,\\
+& \theta+u_i\geq0,
+\qquad i=1,\ldots,n,\\
+& u_i\geq0,
+\qquad i=1,\ldots,n.
+\end{aligned}}
+\]
+
+The objective and all constraints are linear, so this is a linear
+optimization problem (LP).
+
+
+\newpage
+There are $p$ variables in $\beta$, one variable $\beta_0$, one variable
+$\theta$, and $n$ variables $u_i$. Therefore, there are
+\[
+\boxed{p+n+2}
+\]
+continuous variables.
+
+There are $n$ constraints of the first type, $n$ constraints of the
+second type, and $n$ nonnegativity constraints on $u_i$, giving
+\[
+\boxed{3n}
+\]
+constraints in total. Equivalently, there are $2n$ general linear
+constraints and $n$ nonnegativity bounds.
+
+
+\vspace{5mm}
+
+Now suppose instead that the logistic loss is used:
+\[
+\ell(y_i,\beta^\top x_i+\beta_0)
+=
+\log\left(
+1+e^{-y_i(\beta^\top x_i+\beta_0)}
+\right).
+\]
+
+Then (2.2) contains constraints of the form
+\[
+\theta+u_i
+\geq
+\log\left(
+1+e^{-y_i(\beta^\top x_i+\beta_0)}
+\right).
+\]
+
+Unlike hinge loss, logistic loss is a \textbf{smooth nonlinear convex function},
+rather than a piecewise-linear function. Therefore, it cannot be
+represented exactly as a linear mixed-integer optimization problem using
+only finitely many binary variables and linear constraints.
+
+However, binary variables are not necessary. As in Lecture 6 (and in Problem 1 part (e)), applying
+the relaxation and strong-duality argument leads to a continuous convex
+nonlinear optimization problem. Thus, although the formulation is not
+an LP or an exact linear MIO, it is a convex nonlinear optimization
+problem and is computationally tractable.
+
+
+\vspace{5mm}
+
+\subsection*{(d)}
+
+
+\textbf{(i)}
+
+At a solution $(\beta^t,\beta_0^t,t^t)$, we define the current
+losses as
+\[
+c_i^t
+=
+\ell\left(y_i,(\beta^t)^\top x_i+\beta_0^t\right),
+\qquad i=1,\ldots,n.
+\]
+
+The separation problem is therefore 
+\[
+\max_{z\in\mathcal Z}
+\sum_{i=1}^n z_i c_i^t.
+\]
+
+By part (a), this problem has a closed-form solution: the optimal $z$
+selects the $k$ observations with the largest losses. If
+\[
+c_{(1)}^t\geq c_{(2)}^t\geq\cdots\geq c_{(n)}^t,
+\]
+then the optimal value of the separation problem is
+\[
+\sum_{j=1}^k c_{(j)}^t.
+\]
+
+So if we have
+\[
+\sum_{j=1}^k c_{(j)}^t>t^t,
+\]
+our corresponding $z^*$ gives a violated constraint, so we add the cut
+\[
+t
+\geq
+\sum_{i=1}^n
+z_i^*
+\ell(y_i,\beta^\top x_i+\beta_0)
+\]
+and re-solve the restricted problem. Otherwise, no constraint is
+violated and the current solution is optimal.
+
+Computing the $n$ losses requires $O(np)$ time, since evaluating each
+$\beta^\top x_i$ requires $O(p)$ operations. Sorting the losses to find
+the $k$ largest requires $O(n\log n)$ time. Thus, a separation step can
+be performed in
+\[
+\boxed{O(np+n\log n)}
+\]
+time.
+
+\textbf{(ii)}
+
+One reason to prefer the cutting-plane approach is scalability.
+Formulation (2.2) introduces $n$ additional variables $u_i$ and at least
+$n$ additional constraints, so its size grows directly with the number
+of observations.
+
+However, our cutting-plane master problem has only
+\[
+p+2
+\]
+variables, which are the $p$ components of $\beta$, $\beta_0$, and $t$. It starts
+with only a small subset of the constraints in (2.3) and adds a new
+constraint only when the separation problem finds a violated one.
+Therefore, if relatively few cuts are needed, the optimization problems
+solved at each iteration can be much smaller than solving (2.2)
+directly.
+
+
+\vspace{8mm}
+
+\section*{Question 3}
+
+
+\subsection*{Part (a)}
+
+\textbf{(i)}
+
+Imposing the four candidate constraint sets on every adjacent pair gave
+the following results:
+\[
+\begin{array}{c|c|c|c}
+\text{Candidate}
+& \text{Constraints imposed}
+& \text{Objective}
+& \text{Broken constraints}\\
+\hline
+\text{Forward} & 39 & 1.0528 & 574\\
+\text{Backward} & 39 & 1.4079 & 506\\
+\text{Both} & 78 & 2.4454 & 0\\
+\text{Stepped backwards} & 39 & 1.0528 & 908
+\end{array}
+\]
+
+Thus, imposing \textbf{both the forward and backward constraints} on every
+adjacent pair is the only candidate that leaves none of the full 1560
+convexity constraints violated. Since there are $n-1=39$ adjacent pairs
+and two constraints are imposed on each pair, this formulation uses
+$
+2(n-1)=78
+$
+constraints.
+
+Its objective value is
+$
+2.4454,
+$
+which is exactly the same as the objective obtained using all 1560
+constraints. Thus, for this one-dimensional problem, the 78 adjacent-pair constraints are sufficient. 
+
+
+\vspace{5mm}
+\textbf{(ii)}
+
+For the random control sets, increasing the number of constraints
+generally moved the solution closer to the fully convex fit. The results
+were
+\[
+\begin{array}{c|c|c}
+\text{Random constraints}
+& \text{Objective}
+& \text{Broken constraints}\\
+\hline
+39  & 0.5533 & 608\\
+78  & 0.7590 & 517\\
+156 & 1.3073 & 380\\
+312 & 1.6723 & 248\\
+624 & 2.2773 & 70
+\end{array}
+\]
+
+As more random constraints are added, the objective gets closer to the
+full-problem objective of $2.4454$, and fewer constraints are violated.
+However, having more constraints does not necessarily mean they are the
+right ones. For example, 78 random constraints still leave 517
+violations, while the 78 bidirectional adjacent-pair constraints from
+part (i) leave no violations.
+
+This is because the adjacent-pair constraints directly enforce the
+ordering of slopes needed for convexity. Random constraints can miss
+these important neighboring relationships. So we should choose the right constraints instead of choosing more of them. 
+
+\newpage
+
+
+\textbf{(iii)}
+
+From part (i), we impose both the forward and backward constraints on
+every adjacent pair $(k,k+1)$.
+
+\textbf{(1)}
+
+We impose on a single adjacent pair $(k, k+1)$. The forward constraint is
+\[
+\theta_k+\xi_k(x_{k+1}-x_k)\leq\theta_{k+1}.
+\]
+Since
+\[
+h_k=x_{k+1}-x_k>0,
+\]
+we can rewrite this as
+\[
+\xi_k h_k\leq\theta_{k+1}-\theta_k.
+\]
+
+\[
+\xi_k
+\leq
+\frac{\theta_{k+1}-\theta_k}{h_k}
+=
+c_k.
+\]
+
+The backward constraint is
+\[
+\theta_{k+1}+\xi_{k+1}(x_k-x_{k+1})\leq\theta_k.
+\]
+Since $x_k-x_{k+1}=-h_k$, this becomes
+\[
+\theta_{k+1}-\xi_{k+1}h_k\leq\theta_k.
+\]
+We rearrange and get: 
+\[
+c_k\leq\xi_{k+1}.
+\]
+
+\[
+\xi_k\leq c_k\leq\xi_{k+1}.
+\]
+
+Neither inequality alone is sufficient. The forward constraint only gives
+$\boxed{\xi_k\leq c_k}$, while the backward constraint only gives
+$\boxed{c_k\leq\xi_{k+1}}$. Both are needed to connect the slopes on the two
+sides.
+
+
+\vspace{5mm}
+\textbf{(2)}
+
+Now we apply this to every adjacent pair.
+
+The result above holds for every $k=1,\ldots,n-1$. Therefore, the
+inequalities can be placed end to end:
+\[
+\xi_1
+\leq c_1
+\leq \xi_2
+\leq c_2
+\leq \cdots
+\leq \xi_{n-1}
+\leq c_{n-1}
+\leq \xi_n.
+\]
+
+Here, we see how both the subgradients and the chord slopes are nondecreasing, i.e.:
+\[
+\boxed{\xi_1\leq\xi_2\leq\cdots\leq\xi_n,}
+\]
+and
+\[
+\boxed{c_1\leq c_2\leq\cdots\leq c_{n-1}.}
+\]
+
+This is where the ordering $x_1<x_2<\cdots<x_n$ is important. Since
+$x_{k+1}>x_k$, we have $h_k=x_{k+1}-x_k>0$, so dividing by $h_k$
+does not reverse the direction of the inequalities. Also,  we see how the
+adjacent pairs are $(1,2),(2,3),\ldots,(n-1,n)$, so these consecutive
+inequalities share a common subgradient and can be linked together in one ordered sequence (like we see above). 
+
+
+\vspace{5mm}
+\textbf{(3)}
+
+Now we consider two nonadjacent points.
+
+First suppose $i<j$. We want to show that the original convexity
+constraint
+\[
+\theta_i+\xi_i(x_j-x_i)\leq\theta_j
+\]
+holds even though it was not explicitly imposed.
+
+We are given the height difference and distance telescope are
+\[
+\theta_j-\theta_i
+=
+\sum_{k=i}^{j-1}c_kh_k,
+\]
+
+\[
+x_j-x_i
+=
+\sum_{k=i}^{j-1}h_k.
+\]
+
+From the ordering in part (2), for every $k=i,\ldots,j-1$,
+\[
+\xi_i\leq c_k.
+\]
+Since $h_k>0$,
+\[
+\xi_i h_k\leq c_kh_k.
+\]
+We sum these inequalities: 
+\[
+\xi_i\sum_{k=i}^{j-1}h_k
+\leq
+\sum_{k=i}^{j-1}c_kh_k.
+\]
+
+Now we use the telescoping expressions: 
+\[
+\xi_i(x_j-x_i)
+\leq
+\theta_j-\theta_i.
+\]
+Therefore,
+\[
+\theta_i+\xi_i(x_j-x_i)\leq\theta_j.
+\]
+
+Now suppose $i>j$. We must also prove the reverse-direction constraint
+\[
+\theta_i+\xi_i(x_j-x_i)\leq\theta_j.
+\]
+
+As before, we use the telescoping expressions,
+\[
+\theta_i-\theta_j
+=
+\sum_{k=j}^{i-1}c_kh_k,
+\qquad
+x_i-x_j
+=
+\sum_{k=j}^{i-1}h_k.
+\]
+
+The difference from the $i<j$ case is that the ordering from part (2)
+now gives us 
+\[
+c_k\leq\xi_i,
+\qquad k=j,\ldots,i-1.
+\]
+Since $h_k>0$, when we sum over these intervals we get 
+\[
+\theta_i-\theta_j
+=
+\sum_{k=j}^{i-1}c_kh_k
+\leq
+\xi_i\sum_{k=j}^{i-1}h_k
+=
+\xi_i(x_i-x_j).
+\]
+We just rearrange and get the result: 
+\[
+\theta_i+\xi_i(x_j-x_i)\leq\theta_j.
+\]
+
+Thus, the $i<j$ case proves the constraints from a point to every point
+to its right, while the $i>j$ case proves the constraints to every point
+to its left. Since the two cases cover both directions between any pair of points,
+we have shown that every constraint in the full formulation is
+automatically satisfied. Therefore, we only need the $2(n-1)$
+bidirectional adjacent-pair constraints instead of explicitly imposing
+all $n(n-1)$ constraints. \qed
+
+
+\newpage
+\subsection*{Part (b)}
+
+\textbf{(i)}
+
+The worst violation is caused by the supporting plane at point $28$,
+which passes above point $12$. The size of the violation is approximately 0.518.
+
+
+\vspace{5mm}
+\textbf{(ii)}
+
+The step that fails is \textbf{Step (2)} of the proof in part (a)(iii). In one
+dimension, the points can be ordered as
+\[
+x_1<x_2<\cdots<x_n,
+\]
+and the adjacent-pair constraints give
+\[
+\xi_k\leq c_k\leq\xi_{k+1}.
+\]
+These inequalities can then be linked together into the single chain
+\[
+\xi_1\leq c_1\leq\xi_2\leq c_2\leq\cdots\leq\xi_n.
+\]
+
+In $\mathbb{R}^2$, however, there is no single left-to-right ordering of
+the points. The Delaunay neighbours form a two-dimensional mesh rather
+than a chain. 
+
+Also, in one dimension each $\xi_i$ is just one number, so it makes
+sense to compare two slopes and write something like
+\[
+\xi_i\leq\xi_j.
+\]
+In two dimensions, however, each $\xi_i$ has two components, so there is no
+single left-to-right slope ordering that works in the same way.
+
+Because of this, the inequalities from neighboring points cannot be
+linked together like they were in part (a). As a result, checking all
+Delaunay neighbors in both directions is not enough to guarantee the
+constraints between points that are farther apart.
+
+
+\vspace{5mm}
+
+\subsection*{Part (c)}
+
+
+\textbf{(i)}
+
+Starting with both directions, it took \textbf{$2$ rounds} to reach no broken
+constraints. The final model had \textbf{$231$ constraints} and an objective
+value of 2.58541.
+
+Starting with only one direction per edge, it took \textbf{$6$ rounds} to reach
+no broken constraints. The final model had \textbf{$207$ constraints} and the
+same objective value of 2.58541.
+
+
+So, starting with both directions took fewer rounds since we started
+with more constraints already included. Starting with one direction
+took longer, but it ended up using fewer constraints overall. In the
+end, both starting points reached the same objective value.
+
+
+\vspace{5mm}
+\textbf{(ii)}
+
+If $n=10{,}000$, the full formulation would contain
+\[
+n(n-1)
+=
+10{,}000(9{,}999)
+=
+99{,}990{,}000
+\]
+constraints.
+
+This is almost $100$ million constraints, so solving the full model
+directly would be much more difficult. The purpose of constraint
+generation is to avoid including all of these constraints from the
+start. Instead, we begin with a smaller set and only add constraints
+that are actually violated.
+
+
+
+
+\end{document}
