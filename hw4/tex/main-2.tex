@@ -1,0 +1,329 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{parskip}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{tikz}
+\usepackage{titling}
+
+ % move title upward
+
+\title{15.095 Machine Learning HW4}
+\author{Chris Low}
+\date{} % removes the date
+
+\begin{document}
+
+\maketitle
+
+\section*{Question 1}
+
+\subsection*{(a)}
+
+\textbf{True.}
+
+For the linear kernel $
+K(x,x') = x^\top x',
+$ the corresponding RKHS contains only linear functions. By the Representer Theorem, the kernel regression prediction of the optimizer can be written as
+\[
+\hat{z}(x) = \sum_{i=1}^{n} \alpha_i K(x^i,x).
+\]
+
+We use the linear kernel,
+\[
+\hat{z}(x)
+= \sum_{i=1}^{n} \alpha_i (x^i)^\top x
+= \left(\sum_{i=1}^{n} \alpha_i x^i\right)^\top x.
+\]
+
+We define $
+\beta = \sum_{i=1}^{n} \alpha_i x^i,
+$ we obtain $
+\hat{z}(x) = \beta^\top x.
+$
+
+Moreover, $\|\hat{z}\|_{\mathcal{H}}^2$ measures the squared size of the function $\hat{z}$ in the RKHS. For the linear kernel, since $\hat{z}(x)=\beta^\top x$, this norm is simply the squared Euclidean norm of its coefficients:
+\[
+\|\hat{z}\|_{\mathcal{H}}^2 = \|\beta\|_2^2.
+\]
+Thus, the RKHS regularization term is exactly the ridge penalty on $\beta$.
+
+Therefore, the kernel optimizer problem
+\[
+\min_{\hat{z}(\cdot)\in\mathcal{H}}
+\frac{1}{n}\sum_{i=1}^{n} c(\hat{z}(x^i);y^i)
++ \lambda \|\hat{z}\|_{\mathcal{H}}^2
+\]
+reduces to
+\[
+\min_{\beta}
+\frac{1}{n}\sum_{i=1}^{n} c(\beta^\top x^i;y^i)
++ \lambda\|\beta\|_2^2.
+\]
+
+Thus, the kernel regression prediction of the optimizer and the ridge-penalized linear rule give the same decision rule.
+
+
+\vspace{5mm}
+\subsection*{(b)}
+
+\textbf{False.}
+
+The constraints
+\[
+x_{ip} = 0 \qquad \forall i < p
+\]
+are symmetry-breaking constraints. They may eliminate some labelings of an optimal assignment, but they do not eliminate the optimal grouping itself.
+
+To see this, we can take any optimal assignment and relabel the groups according to their smallest-indexed subject, from smallest to largest. After relabeling, the smallest subject in group $p$ must have index at least $p$. Therefore, every subject $i$ assigned to group $p$ satisfies $
+i \geq p,
+$
+so the constraints $x_{ip}=0$ for $i<p$ are satisfied.
+
+For example, suppose an optimal assignment is
+\[
+G_1 = \{3,4\}, \qquad G_2 = \{1,2\}.
+\]
+This violates the constraint since subject 1 is in group 2. However, we can simply swap the group labels:
+\[
+G_1 = \{1,2\}, \qquad G_2 = \{3,4\}.
+\]
+The constraint is now satisfied, but the actual grouping of subjects has not changed, so the discrepancy is exactly the same.
+
+Relabeling the groups does not change which subjects are actually grouped together, so the discrepancy stays the same. The constraints just remove duplicate versions of the same solution with different group labels. This speeds up the solver because it has fewer equivalent assignments to search through, without changing the optimal discrepancy.
+\vspace{5mm}
+\subsection*{(c)}
+
+
+\textbf{False.}
+
+Although the groups are formed deterministically by the optimization, the treatment assigned to each group is still randomized. After the optimizer creates balanced groups, the treatments are randomly assigned across these groups. Therefore, each subject is equally likely to receive each treatment.
+
+The optimization is only used to make the groups more similar in their pre-treatment characteristics, which reduces the chance of large imbalances between the groups. For example, suppose some patients are much sicker than others before treatment. A purely random grouping could accidentally put most of the sicker patients in one group. The optimization instead forms groups with similar levels of severity, and then randomly assigns treatments A and B to those groups. This improves the balance between the groups while keeping the treatment assignment random and unbiased. Since the treatment assignment itself is still random, the difference in mean outcomes remains an unbiased estimate of the difference in treatment effects. Thus, deterministic grouping can improve balance without introducing bias.
+
+\vspace{5mm}
+\subsection*{(d)}
+
+
+\textbf{False.}
+
+In ROAD I, prognostic matching first uses the observed patient characteristics $X$ to estimate each patient's baseline risk. Patients with similar predicted risks are placed into the same risk buckets, and the optimization creates equal numbers of treated and untreated patients within each bucket. This makes the two groups more comparable based on the information we observe.
+
+However, this does not mean the matched groups are free of confounding. For example, two patients may have similar observed characteristics and therefore be placed in the same risk bucket, but one may have an unobserved mutation that makes them both more likely to receive treatment and more likely to have a worse outcome. Since this information is not included in $X$, the matching cannot account for it.
+
+Therefore, prognostic matching can reduce imbalance in observed characteristics, but unobserved confounding may still remain. Unlike in a randomized trial, treatment was not randomly assigned, so the matched cohort is not necessarily free of confounding.
+
+
+
+\vspace{5mm}
+\subsection*{(e)}
+
+
+\textbf{True.}
+
+In a randomized controlled trial (RCT), treatment is randomly assigned, so treatment is independent of both observed and unobserved prognostic factors. Therefore, the latent factor $\tilde{U}$, which summarizes the influence of unobserved prognostic factors, should already be balanced between the treatment groups in expectation, apart from small finite-sample imbalances.
+
+As a result, explicitly balancing $\tilde{U}$ again should change the estimated treatment effect very little. This also provides a useful check on ROAD II. If balancing $\tilde{U}$ substantially changed the estimated effect in randomized data, it could mean that the adjustment itself was distorting the estimate instead of correcting for confounding. Therefore, on randomized trial data, the estimated treatment effect should remain nearly unchanged.
+
+
+\newpage
+
+
+\section*{Question 2}
+
+\subsection*{(a)}
+
+The doubly robust reward is
+\[
+\Gamma_{it}^{\mathrm{DR}}
+=
+f_t(x_i)
++
+\mathbf{1}\{T_i=t\}
+\frac{y_i-f_t(x_i)}{p_{it}}.
+\]
+
+For patient 1, since $T_1=A$,
+\[
+\Gamma_{1A}^{\mathrm{DR}}
+=
+6+\frac{6-6}{0.8}
+=
+6,
+\qquad
+\Gamma_{1B}^{\mathrm{DR}}
+=
+7.
+\]
+
+For patient 2, since $T_2=B$,
+\[
+\Gamma_{2A}^{\mathrm{DR}}
+=
+6,
+\qquad
+\Gamma_{2B}^{\mathrm{DR}}
+=
+7+\frac{4-7}{0.2}
+=
+-8.
+\]
+
+For patient 3, since $T_3=B$,
+\[
+\Gamma_{3A}^{\mathrm{DR}}
+=
+3,
+\qquad
+\Gamma_{3B}^{\mathrm{DR}}
+=
+5+\frac{5-5}{0.8}
+=
+5.
+\]
+
+For patient 4, since $T_4=A$,
+\[
+\Gamma_{4A}^{\mathrm{DR}}
+=
+3+\frac{2-3}{0.2}
+=
+-2,
+\qquad
+\Gamma_{4B}^{\mathrm{DR}}
+=
+5.
+\]
+
+Therefore, with the first column corresponding to drug A and the second column corresponding to drug B,
+\[
+\Gamma^{\mathrm{DR}}
+=
+\begin{pmatrix}
+6 & 7\\
+6 & -8\\
+3 & 5\\
+-2 & 5
+\end{pmatrix}.
+\]
+
+\vspace{5mm}
+\subsection*{(b)}
+
+For the Direct Method, the reward matrix is
+\[
+\Gamma^{\mathrm{DM}}
+=
+\begin{pmatrix}
+6 & 7\\
+6 & 7\\
+3 & 5\\
+3 & 5
+\end{pmatrix}.
+\]
+
+For the mild patients ($i=1,2$), the total rewards from assigning A or B are
+\[
+A: 6+6=12,
+\qquad
+B: 7+7=14.
+\]
+Thus, the Direct Method assigns drug B to mild patients.
+
+For the severe patients ($i=3,4$),
+\[
+A: 3+3=6,
+\qquad
+B: 5+5=10.
+\]
+Thus, the Direct Method also assigns drug B to severe patients. Therefore, the optimal DM policy is
+\[
+\boxed{\text{Mild} \rightarrow B,
+\qquad
+\text{Severe} \rightarrow B,}
+\]
+with total reward of $ 14+10=24.$
+
+
+For the Doubly Robust method, using the reward matrix from part (a),
+\[
+\Gamma^{\mathrm{DR}}
+=
+\begin{pmatrix}
+6 & 7\\
+6 & -8\\
+3 & 5\\
+-2 & 5
+\end{pmatrix}.
+\]
+
+For the mild patients,
+\[
+A: 6+6=12,
+\qquad
+B: 7+(-8)=-1.
+\]
+Thus, the Doubly Robust method assigns drug A to mild patients.
+
+For the severe patients,
+\[
+A: 3+(-2)=1,
+\qquad
+B: 5+5=10.
+\]
+Thus, the Doubly Robust method assigns drug B to severe patients. Therefore, the optimal DR policy is
+\[
+\boxed{
+\text{Mild} \rightarrow A,
+\qquad
+\text{Severe} \rightarrow B,}
+\]
+with total reward $
+12+10=22.
+$
+
+As a check, the total rewards for all four possible policies are
+\[
+\begin{array}{c|cc}
+\text{Policy (Mild/Severe)} & \mathrm{DM} & \mathrm{DR}\\
+\hline
+A/A & 18 & 13\\
+B/B & 24 & 9\\
+A/B & 22 & 22\\
+B/A & 20 & 0
+\end{array}
+\]
+
+Hence, the optimal policies are $
+\boxed{\mathrm{DM}: B/B \text{ with total reward }24}
+$ and $
+\boxed{\mathrm{DR}: A/B \text{ with total reward }22}.
+$
+
+
+\vspace{5mm}
+\subsection*{(c)}
+
+
+The disagreement is caused by \textbf{patient 2}, who is a mild patient that received drug B. The Direct Method only uses the predicted outcomes. Since $
+f_B(0)=7 > f_A(0)=6,
+$ DM predicts that drug B is better for mild patients.
+
+However, patient 2 actually received drug B and survived only 4 years, while the model predicted 7 years. The residual is therefore $
+4-7=-3. $ Since a mild patient receives drug B with probability only $0.2$, the DR correction is $
+\frac{4-7}{0.2}=-15.
+$ Thus, patient 2's DR reward for drug B becomes
+$ \Gamma^{\mathrm{DR}}_{2B}
+=
+7-15
+=
+-8.
+$
+This large negative correction makes the total DR reward for B much lower for mild patients, causing DR to choose A instead.
+
+I would trust the DR policy, which gives A to mild patients and B to severe patients. The treatment probabilities come directly from the hospital protocol, so we know that part of the DR calculation is accurate. DR also uses the patients' actual outcomes to correct the model predictions. This is important here because the model predicted 7 years for patient 2 under B, but the patient only survived 4 years. DM does not make this correction and simply trusts the prediction. However, since there are only a few patients and the DR result is strongly affected by patient 2, I would want more data to confirm the result.
+
+
+\end{document}
